@@ -1,0 +1,252 @@
+HTML
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Household Budget Tracker</title>
+    <style>
+        :root {
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+            --text-muted: #666666;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --border: #e5e7eb;
+            --success: #10b981;
+            --error: #ef4444;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            width: 100%;
+            max-width: 450px;
+        }
+
+        h2 {
+            margin-top: 0;
+            margin-bottom: 8px;
+            color: var(--text-main);
+            font-size: 24px;
+        }
+
+        p.subtitle {
+            color: var(--text-muted);
+            margin-bottom: 24px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 15px;
+            background-color: #fff;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            height: 70px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        button:disabled {
+            background-color: var(--text-muted);
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        #statusMessage {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 14px;
+            text-align: center;
+            display: none;
+        }
+
+        #statusMessage.success {
+            display: block;
+            background-color: #ecfdf5;
+            color: var(--success);
+            border: 1px solid #a7f3d0;
+        }
+
+        #statusMessage.error {
+            display: block;
+            background-color: #fef2f2;
+            color: var(--error);
+            border: 1px solid #fca5a5;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Log Household Expense</h2>
+    <p class="subtitle">Enter details below to update the Google Sheet database.</p>
+    
+    <form id="expenseForm">
+        <div class="form-group">
+            <label for="date">Date</label>
+            <input type="date" id="date" required>
+        </div>
+
+        <div class="form-group">
+            <label for="category">Category</label>
+            <select id="category" required>
+                <option value="" disabled selected>Select a category</option>
+                <option value="Housing/Rent">Housing/Rent</option>
+                <option value="Groceries">Groceries</option>
+                <option value="Utilities">Utilities (Electric, Water, Gas)</option>
+                <option value="Insurance/Medical">Insurance & Medical</option>
+                <option value="Transport/Gas">Transport & Gas</option>
+                <option value="Entertainment">Entertainment/Dining Out</option>
+                <option value="Miscellaneous">Miscellaneous</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="amount">Amount ($)</label>
+            <input type="number" id="amount" step="0.01" min="0.01" placeholder="0.00" required>
+        </div>
+
+        <div class="form-group">
+            <label for="notes">Notes</label>
+            <textarea id="notes" placeholder="e.g., Weekly Costco run, Electric bill"></textarea>
+        </div>
+
+        <button type="submit" id="submitBtn">Save to Sheet</button>
+    </form>
+
+    <div id="statusMessage"></div>
+</div>
+
+<script>
+    // 1. Paste your Google Apps Script Web App URL here
+    const WEB_APP_URL = "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE";
+
+    // Automatically set today's date in the input fields
+    document.getElementById('date').valueAsDate = new Date();
+
+    const form = document.getElementById('expenseForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const statusMessage = document.getElementById('statusMessage');
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        // Safety check if you forgot to replace the script URL placeholder
+        if (WEB_APP_URL.includes("YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE")) {
+            showStatus("Error: Please update the script with your real Google Web App URL.", "error");
+            return;
+        }
+
+        // Change button state to visual loading
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Sending...";
+        hideStatus();
+
+        // Extract input fields into a clean JSON payload
+        const payload = {
+            date: document.getElementById('date').value,
+            category: document.getElementById('category').value,
+            amount: document.getElementById('amount').value,
+            notes: document.getElementById('notes').value
+        };
+
+        try {
+            // Send payload to Google Sheets via Fetch API
+            // Note: mode: "no-cors" is common practice when communicating with standard Google Apps Script endpoints
+            const response = await fetch(WEB_APP_URL, {
+                method: "POST",
+                mode: "no-cors", 
+                headers: {
+                    "Content-Type": "text/plain;charset=utf-8"
+                },
+                body: JSON.stringify(payload)
+            });
+
+            // If the script doesn't throw a cross-origin failure, assume successful write
+            showStatus("Expense successfully saved to Google Sheets!", "success");
+            
+            // Clear standard inputs except the date
+            document.getElementById('category').value = "";
+            document.getElementById('amount').value = "";
+            document.getElementById('notes').value = "";
+            document.getElementById('date').valueAsDate = new Date();
+
+        } catch (error) {
+            console.error("Transmission Error:", error);
+            showStatus("Failed to submit expense. Check your network or script deployment.", "error");
+        } finally {
+            // Restore button usability
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Save to Sheet";
+        }
+    });
+
+    function showStatus(text, type) {
+        statusMessage.textContent = text;
+        statusMessage.className = type;
+    }
+
+    function hideStatus() {
+        statusMessage.textContent = "";
+        statusMessage.className = "";
+    }
+</script>
+
+</body>
+</html>
