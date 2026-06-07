@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Household Budget Planner (PHP)</title>
+    <style>
+        :root {
+            --primary: #2e7d32;
+            --primary-light: #e8f5e9;
+            --danger: #c62828;
+            --danger-light: #ffebee;
+            --text: #37474f;
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --border: #cfd8dc;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 1100px;
+            width: 100%;
+        }
+
+        header {
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        header h1 {
+            color: var(--primary);
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        header p {
+            color: #607d8b;
+            font-size: 14px;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        @media (min-width: 768px) {
+            .main-layout {
+                grid-template-columns: 320px 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .card h2 {
+            font-size: 16px;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--border);
+            color: #455a64;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #546e7a;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            color: var(--text);
+            background-color: #fff;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        button.btn-add {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button.btn-add:hover {
+            background-color: #1b5e20;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        @media (min-width: 900px) {
+            .dashboard {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .cutoff-column {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .summary-box {
+            background-color: var(--primary-light);
+            border: 1px solid #c8e6c9;
+            border-radius: 6px;
+            padding: 12px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 13px;
+        }
+
+        .summary-box.deficit {
+            background-color: var(--danger-light);
+            border-color: #ffcdd2;
+        }
+
+        .summary-box div span {
+            display: block;
+            font-size: 11px;
+            color: #546e7a;
+            font-weight: 600;
+        }
+
+        .summary-box div.total-val {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .summary-box .savings-val {
+            color: var(--primary);
+        }
+
+        .summary-box.deficit .savings-val {
+            color: var(--danger);
+        }
+
+        .log-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 350px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .log-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #fcfdfe;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        .log-item .details span {
+            display: block;
+            font-size: 11px;
+            color: #78909c;
+        }
+
+        .log-item .amount-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .log-item .amount {
+            font-weight: 600;
+        }
+
+        .btn-delete {
+            background: none;
+            border: none;
+            color: #b0bec5;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 2px 5px;
+            border-radius: 4px;
+        }
+
+        .btn-delete:hover {
+            color: var(--danger);
+            background-color: var(--danger-light);
+        }
+
+        .empty-msg {
+            font-size: 13px;
+            color: #90a4ae;
+            text-align: center;
+            padding: 20px 0;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Household Budget Planner</h1>
+        <p>Log expenses and track savings cut off by cut off</p>
+    </header>
+
+    <div class="main-layout">
+        <!-- LEFT SIDE: INPUT FORM -->
+        <div class="card">
+            <h2>Add New Log</h2>
+            
+            <div class="form-group">
+                <label for="salaryInput">Husband's Salary (Per Cutoff)</label>
+                <input type="number" id="salaryInput" value="25000" onchange="updateBudgets()">
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid var(--border); margin: 20px 0;">
+
+            <div class="form-group">
+                <label for="cutoffSelect">Payday Cutoff</label>
+                <select id="cutoffSelect">
+                    <option value="15th">15th Payday</option>
+                    <option value="end">End of Month Payday</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="categorySelect">Category</label>
+                <select id="categorySelect">
+                    <option value="Billing">Fixed Billing (Utilities/Rent)</option>
+                    <option value="Expense">Variable House Expense</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="itemName">Item Description</label>
+                <input type="text" id="itemName" placeholder="e.g., Meralco, Groceries">
+            </div>
+
+            <div class="form-group">
+                <label for="itemAmount">Amount (₱)</label>
+                <input type="number" id="itemAmount" placeholder="0.00">
+            </div>
+
+            <button class="btn-add" onclick="addItem()">Add to Budget</button>
+        </div>
+
+        <!-- RIGHT SIDE: DOUBLE CUTOFF DASHBOARD -->
+        <div class="dashboard">
+            
+            <!-- 15TH CUTOFF COLUMN -->
+            <div class="card cutoff-column">
+                <h2>15th Cutoff Budget</h2>
+                
+                <div class="summary-box" id="box-15th">
+                    <div><span>Total Expenses</span><div class="total-val" id="exp-15th">₱0.00</div></div>
+                    <div><span>Remaining Savings</span><div class="total-val savings-val" id="save-15th">₱25,000.00</div></div>
+                </div>
+
+                <ul class="log-list" id="list-15th">
+                    <!-- Dynamic Items Go Here -->
+                </ul>
+            </div>
+
+            <!-- END OF MONTH CUTOFF COLUMN -->
+            <div class="card cutoff-column">
+                <h2>End of Month Cutoff Budget</h2>
+                
+                <div class="summary-box" id="box-end">
+                    <div><span>Total Expenses</span><div class="total-val" id="exp-end">₱0.00</div></div>
+                    <div><span>Remaining Savings</span><div class="total-val savings-val" id="save-end">₱25,000.00</div></div>
+                </div>
+
+                <ul class="log-list" id="list-end">
+                    <!-- Dynamic Items Go Here -->
+                </ul>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    // App State initialized with some localized default data
+    let budgetItems = [
+        { id: 1, cutoff: '15th', category: 'Billing', name: 'House Rent', amount: 8000 },
+        { id: 2, cutoff: '15th', category: 'Expense', name: 'Mid-Month Groceries', amount: 4500 },
+        { id: 3, cutoff: 'end', category: 'Billing', name: 'Meralco Bill', amount: 5500 },
+        { id: 4, cutoff: 'end', category: 'Expense', name: 'End-Month Groceries', amount: 4500 },
+        { id: 5, cutoff: 'end', category: 'Billing', name: 'Water Bill', amount: 600 }
+    ];
+
+    let nextId = 6;
+
+    // Helper to format currency safely
+    function formatPHP(num) {
+        return '₱' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    // Main render engine
+    function updateBudgets() {
+        const salary = parseFloat(document.getElementById('salaryInput').value) || 0;
+        
+        // Split data by cutoff
+        const items15th = budgetItems.filter(item => item.cutoff === '15th');
+        const itemsEnd = budgetItems.filter(item => item.cutoff === 'end');
+
+        // Calculate totals
+        const totalExp15th = items15th.reduce((sum, item) => sum + item.amount, 0);
+        const totalExpEnd = itemsEnd.reduce((sum, item) => sum + item.amount, 0);
+
+        const savings15th = salary - totalExp15th;
+        const savingsEnd = salary - totalExpEnd;
+
+        // Update 15th Column UI
+        document.getElementById('exp-15th').innerText = formatPHP(totalExp15th);
+        document.getElementById('save-15th').innerText = formatPHP(savings15th);
+        toggleDeficitStyle('box-15th', savings15th);
+        renderList('list-15th', items15th);
+
+        // Update End Column UI
+        document.getElementById('exp-end').innerText = formatPHP(totalExpEnd);
+        document.getElementById('save-end').innerText = formatPHP(savingsEnd);
+        toggleDeficitStyle('box-end', savingsEnd);
+        renderList('list-end', itemsEnd);
+    }
+
+    // Change background color of totals if expenses exceed salary
+    function toggleDeficitStyle(boxId, savingsValue) {
+        const box = document.getElementById(boxId);
+        if (savingsValue < 0) {
+            box.classList.add('deficit');
+        } else {
+            box.classList.remove('deficit');
+        }
+    }
+
+    // Build the visual list items
+    function renderList(listId, items) {
+        const listEl = document.getElementById(listId);
+        listEl.innerHTML = '';
+
+        if (items.length === 0) {
+            listEl.innerHTML = '<li class="empty-msg">No entries logged yet</li>';
+            return;
+        }
+
+        items.forEach(item => {
+            const li = document.createElement('li');
+            li.className = 'log-item';
+            li.innerHTML = `
+                <div class="details">
+                    <strong>${item.name}</strong>
+                    <span>${item.category}</span>
+                </div>
+                <div class="amount-container">
+                    <span class="amount">${formatPHP(item.amount)}</span>
+                    <button class="btn-delete" onclick="deleteItem(${item.id})" title="Delete entry">&times;</button>
+                </div>
+            `;
+            listEl.appendChild(li);
+        });
+    }
+
+    // Action handler: Add item
+    function addItem() {
+        const cutoff = document.getElementById('cutoffSelect').value;
+        const category = document.getElementById('categorySelect').value;
+        const nameInput = document.getElementById('itemName');
+        const amountInput = document.getElementById('itemAmount');
+
+        const name = nameInput.value.trim();
+        const amount = parseFloat(amountInput.value);
+
+        if (!name || isNaN(amount) || amount <= 0) {
+            alert('Please enter a valid item description and amount.');
+            return;
+        }
+
+        budgetItems.push({
+            id: nextId++,
+            cutoff: cutoff,
+            category: category,
+            name: name,
+            amount: amount
+        });
+
+        // Clear input values
+        nameInput.value = '';
+        amountInput.value = '';
+
+        updateBudgets();
+    }
+
+    // Action handler: Delete item
+    function deleteItem(id) {
+        budgetItems = budgetItems.filter(item => item.id !== id);
+        updateBudgets();
+    }
+
+    // Run when webpage loads
+    window.onload = updateBudgets;
+</script>
+
+</body>
+</html>
